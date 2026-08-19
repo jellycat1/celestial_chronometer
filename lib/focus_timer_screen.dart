@@ -2,6 +2,7 @@ import 'package:celestial_chronometer/models/planet_data.dart';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
+import 'package:flutter/scheduler.dart';
 
 import 'celestial_painter.dart';
 
@@ -16,10 +17,12 @@ class FocusTimerScreen extends StatefulWidget {
 
 class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerProviderStateMixin {
   late final AppLifecycleListener _lifecycleListener;
-  late AnimationController _controller;
+  late Ticker _ticker;
 
   TimerStatus _status = TimerStatus.idle;
   int _secondsElapsed = 0;
+  double _pausedOffset = 0;
+  double _elapsedMilliseconds = 0;
   Timer? _timer;
 
 
@@ -28,25 +31,25 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
       orbitRadius: 50,
       planetRadius: 4,
       color: Colors.cyan,
-      speedMultiplier: 1,
+      speedMultiplier: 1.7,
     ),
     PlanetData(
       orbitRadius: 90,
       planetRadius: 4,
       color: Colors.cyan,
-      speedMultiplier: 1,
+      speedMultiplier: 1.3,
     ),
     PlanetData(
       orbitRadius: 130,
       planetRadius: 4,
       color: Colors.cyan,
-      speedMultiplier: 1,
+      speedMultiplier: 0.9,
     ),
     PlanetData(
       orbitRadius: 170,
       planetRadius: 4,
       color: Colors.cyan,
-      speedMultiplier: 1,
+      speedMultiplier: 0.5,
     ),
   ];
 
@@ -55,10 +58,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
+    _ticker = createTicker((elapsed) {
+      setState(() {
+        _elapsedMilliseconds = _pausedOffset + elapsed.inMilliseconds.toDouble();
+      });
+    });
 
     _lifecycleListener = AppLifecycleListener(
       onPause: _onAppBackgrounded,
@@ -77,9 +81,12 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
     setState(() {
       _status = TimerStatus.running;
       _secondsElapsed = 0;
+      _pausedOffset = 0.0;
+      _elapsedMilliseconds = 0.0;
     });
 
     WakelockPlus.enable();
+    _ticker.start();
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -91,6 +98,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
 
   void _breakSystem() {
     _timer?.cancel();
+    _ticker.stop();
     WakelockPlus.disable();
 
     setState(() {
@@ -100,10 +108,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
 
   void _resetTimer() {
     _timer?.cancel();
+    _ticker.stop();
     WakelockPlus.disable();
+
     setState(() {
       _status = TimerStatus.idle;
       _secondsElapsed = 0;
+      _pausedOffset = 0.0;
+      _elapsedMilliseconds = 0.0;
     });
   }
 
@@ -113,15 +125,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
       setState(() {
         _status = TimerStatus.running;
       });
+      _ticker.start();
+      WakelockPlus.enable();
+
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           _secondsElapsed++;
         });
       });
-
     } else if (_status == TimerStatus.running) {
       // Pause
       _timer?.cancel();
+      _ticker.stop();
+      _pausedOffset = _elapsedMilliseconds; // Save exact position
+      WakelockPlus.disable();
+
       setState(() {
         _status = TimerStatus.paused;
       });
@@ -133,8 +151,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
     _timer?.cancel();
     _lifecycleListener.dispose();
     WakelockPlus.disable();
-    _controller.dispose();
     super.dispose();
+    _ticker.dispose();
   }
 
   @override
@@ -144,14 +162,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
       body: Stack(
         children: [
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: CelestialPainter(animationValue: _controller.value, planets: planets),
-                );
-              }
-            ),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: CelestialPainter(
+                  elapsedMilliseconds: _elapsedMilliseconds,
+                  planets: planets
+                )
+              )
+            )
           ),
           Positioned(
             left: 0,
@@ -166,7 +184,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
                   Text(
                     // "Seconds: ${_secondsElapsed}",
                     "${(_secondsElapsed ~/ 60).toString().padLeft(2, '0')}:${(_secondsElapsed % 60).toString().padLeft(2, '0')}",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 80,
                       shadows: [
                         Shadow(

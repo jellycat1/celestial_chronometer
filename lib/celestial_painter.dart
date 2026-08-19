@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'package:celestial_chronometer/models/planet_data.dart';
 
 class CelestialPainter extends CustomPainter {
-  final double animationValue;
+  final double elapsedMilliseconds;
   final List<PlanetData> planets;
 
   CelestialPainter({
-    required this.animationValue,
+    required this.elapsedMilliseconds,
     required this.planets,
   });
 
@@ -42,6 +42,8 @@ class CelestialPainter extends CustomPainter {
 
     canvas.drawCircle(center, sunRadius, sunPaint);
 
+    final double seconds = elapsedMilliseconds / 1000.0;
+
     for (final planet in planets) {
       final Paint orbitPaint = Paint()
         ..color = planet.color.withValues(alpha: 0.2)
@@ -50,8 +52,7 @@ class CelestialPainter extends CustomPainter {
 
       canvas.drawCircle(center, planet.orbitRadius, orbitPaint);
 
-      
-      final double angle = animationValue * 2 * math.pi;
+      final double angle = (seconds * (2 * math.pi / 10.0)) * planet.speedMultiplier;
 
       final Offset planetPos = Offset(
         center.dx + planet.orbitRadius * math.cos(-angle * planet.speedMultiplier),
@@ -67,70 +68,9 @@ class CelestialPainter extends CustomPainter {
 
   }
 
-
-  // @override
-  // void paint(Canvas canvas, Size size) {
-  //   final Offset center = Offset(size.width / 2, (size.height / 2) - 200);
-  //   const double sunRadius = 10.0;
-  //   const double planetTrackStrokeWidth = 1;
-  //   Color trackColor = Color.fromARGB(255, 53, 53, 53).withValues(alpha: 0.3);
-    
-
-  //   final Paint sunPaint = Paint()
-  //     ..color = Color(0xFFb9db0d).withValues(alpha: 0.7)
-  //     ..style = PaintingStyle.fill;
-      
-  //   final Paint ringOnePaint = Paint()
-  //     ..color = trackColor
-  //     ..style = PaintingStyle.stroke
-  //     ..strokeWidth = planetTrackStrokeWidth;
-
-  //   final Paint ringTwoPaint = Paint()
-  //     ..color = trackColor
-  //     ..style = PaintingStyle.stroke
-  //     ..strokeWidth = planetTrackStrokeWidth;
-
-  //   final Paint ringThreePaint = Paint()
-  //     ..color = trackColor
-  //     ..style = PaintingStyle.stroke
-  //     ..strokeWidth = planetTrackStrokeWidth;
-
-  //   final Paint ringFourPaint = Paint()
-  //     ..color = trackColor
-  //     ..style = PaintingStyle.stroke
-  //     ..strokeWidth = planetTrackStrokeWidth;
-
-  //   // Ring 1
-  //   canvas.drawCircle(center, 90.0, ringOnePaint);
-
-  //   // Ring 2
-  //   canvas.drawCircle(center, 50.0, ringTwoPaint);
-
-  //   // Ring 3
-  //   canvas.drawCircle(center, 130.0, ringThreePaint);
-
-  //   // Ring 4
-  //   canvas.drawCircle(center, 170.0, ringFourPaint);
-
-  //   // Sun
-  //   canvas.drawCircle(center, sunRadius, sunPaint);
-
-  //   final double angle = animationValue * 2 * math.pi;
-
-  //   final Offset planetOnePos = Offset(
-  //     center.dx + 50 * math.cos(-angle * 2),
-  //     center.dy + 50 * math.sin(-angle * 2),
-  //   );
-
-  //   final Paint planetOnePaint = Paint()
-  //     ..color = Colors.cyan
-  //     ..style = PaintingStyle.fill;
-
-  //   canvas.drawCircle(planetOnePos, 8.0, planetOnePaint);
-  // }
   @override
   bool shouldRepaint(covariant CelestialPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue ||
+    return oldDelegate.elapsedMilliseconds != elapsedMilliseconds ||
       oldDelegate.planets != planets;
   }
 }
