@@ -24,31 +24,37 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
   double _pausedOffset = 0;
   double _elapsedMilliseconds = 0;
   Timer? _timer;
+  double _rotationX = 0.5;
+  double _rotationY = 0.5;
+
+  double _scale = 1.0;
+  double _baseScale = 1.0;
+  Offset _offset = Offset.zero;
 
 
   final List<PlanetData> planets = const [
     PlanetData(
       orbitRadius: 50,
       planetRadius: 4,
-      color: Colors.cyan,
+      color: Color(0xFFFFAA50),
       speedMultiplier: 1.7,
     ),
     PlanetData(
       orbitRadius: 90,
       planetRadius: 4,
-      color: Colors.cyan,
+      color: Color(0xFF70FFE0),
       speedMultiplier: 1.3,
     ),
     PlanetData(
       orbitRadius: 130,
       planetRadius: 4,
-      color: Colors.cyan,
+      color: Color(0xFFFF6878),
       speedMultiplier: 0.9,
     ),
     PlanetData(
       orbitRadius: 170,
       planetRadius: 4,
-      color: Colors.cyan,
+      color: Color(0xFF9898FF),
       speedMultiplier: 0.5,
     ),
   ];
@@ -151,8 +157,25 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
     _timer?.cancel();
     _lifecycleListener.dispose();
     WakelockPlus.disable();
-    super.dispose();
     _ticker.dispose();
+    super.dispose();
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _baseScale = _scale;
+  }
+  
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    setState(() {
+      if (details.pointerCount >= 2) {
+        // Pan:
+        _scale = (_baseScale * details.scale).clamp(0.5, 3.0);
+        _offset += details.focalPointDelta;
+      } else {
+        _rotationY += details.focalPointDelta.dx * 0.01;
+        _rotationX += details.focalPointDelta.dy * 0.01;
+      }
+    });
   }
 
   @override
@@ -162,13 +185,29 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
       body: Stack(
         children: [
           Positioned.fill(
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: CelestialPainter(
-                  elapsedMilliseconds: _elapsedMilliseconds,
-                  planets: planets
-                )
-              )
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: _onScaleStart,
+              onScaleUpdate: _onScaleUpdate,
+              child: Center(
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..translate(_offset.dx, _offset.dy)
+                    ..scale(_scale),
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      size: Size(400, 400),
+                      painter: CelestialPainter(
+                        elapsedMilliseconds: _elapsedMilliseconds,
+                        planets: planets,
+                        rotationX: _rotationX,
+                        rotationY: _rotationY,
+                      )
+                    )
+                  ),
+                ),
+              ),
             )
           ),
           Positioned(
