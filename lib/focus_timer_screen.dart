@@ -80,6 +80,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
       onInactive: _onAppBackgrounded,
       onHide: _onAppBackgrounded,
     );
+
+    _startTimer();
   }
 
   void _onAppBackgrounded() {
@@ -273,7 +275,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const FocusSessionScreen(),
+                                builder: (context) => FocusSessionScreen(sessionDuration: _selectedDuration,),
                               ),
                             );
                           },

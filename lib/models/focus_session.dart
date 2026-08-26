@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum PlanetStage { dustCloud, protoplanet, planet, ringedPlanet, fullyEvolved }
 
 class FocusSession {

@@ -12,7 +12,7 @@ class FocusTimeInputField extends StatefulWidget {
 }
 
 class _FocusTimeInputFieldState extends State<FocusTimeInputField> {
-  final TextEditingController _controller = TextEditingController(text: '00:25:00');
+  final TextEditingController _controller = TextEditingController(text: '00:00:00');
 
   void _onChanged(String text) {
     final digits = text.replaceAll(RegExp(r'\D'), '').padLeft(6, '0');
