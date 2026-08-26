@@ -1,4 +1,7 @@
 import 'package:celestial_chronometer/models/planet_data.dart';
+import 'package:celestial_chronometer/focus_session_screen.dart';
+import 'package:celestial_chronometer/widgets/focus_time_input_field.dart';
+
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
@@ -26,6 +29,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
   Timer? _timer;
   double _rotationX = 0.5;
   double _rotationY = 0.5;
+
+  Duration _selectedDuration = Duration.zero;
 
   double _scale = 1.0;
   double _baseScale = 1.0;
@@ -217,49 +222,108 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
             child: Center(
               child: Column(
                 children: [
+
+                  Center(
+                    child: FocusTimeInputField(
+                      onDurationChanged: (duration) {
+                        _selectedDuration = duration;
+                      }
+                    )
+                  ),
+
                   // Text(
                   //   "STATUS: ${_status == TimerStatus.broken ? "BROKEN" : _status == TimerStatus.idle ? "IDLE" : _status == TimerStatus.paused ? "PAUSED" : "RUNNING"}"
                   // ),
-                  Text(
-                    // "Seconds: ${_secondsElapsed}",
-                    "${(_secondsElapsed ~/ 60).toString().padLeft(2, '0')}:${(_secondsElapsed % 60).toString().padLeft(2, '0')}",
-                    style: const TextStyle(
-                      fontSize: 80,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 10.0,
-                          color: Colors.cyan,
-                          offset: Offset(0, 0), // (0,0) keeps the glow perfectly centered
-                        ),
-                      ]
-                    )
-                  ),
+                  // Text(
+                  //   "${(_secondsElapsed ~/ 60).toString().padLeft(2, '0')}:${(_secondsElapsed % 60).toString().padLeft(2, '0')}",
+                  //   style: const TextStyle(
+                  //     fontSize: 80,
+                  //     shadows: [
+                  //       Shadow(
+                  //         blurRadius: 13.0,
+                  //         color: Colors.cyan,
+                  //         offset: Offset(0, 0), // (0,0) keeps the glow perfectly centered
+                  //       ),
+                  //     ]
+                  //   )
+                  // ),
+                  // Text(
+                  //   "${(_selectedDuration.inHours % 60).toString().padLeft(2, '0')}:${(_selectedDuration.inMinutes % 60).toString().padLeft(2, '0')}:00",
+                  //   style: const TextStyle(
+                  //     fontSize: 80,
+                  //     shadows: [
+                  //       Shadow(
+                  //         blurRadius: 13.0,
+                  //         color: Colors.cyan,
+                  //         offset: Offset(0, 0),
+                  //       ),
+                  //     ]
+                  //   )
+                  // ),
+                  const SizedBox(height: 40),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     spacing: 20,
                     children: [
-                      ElevatedButton(
-                        onPressed: _status == TimerStatus.idle || _status == TimerStatus.broken ? _startTimer : _toggleTimer,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black.withValues(alpha: 0.5),
-                          shadowColor: Colors.cyan.withValues(alpha: 0.5),
-                          elevation: 2,
-                        ),
-                        child: Text(
-                          _status == TimerStatus.running ? "PAUSE" : _status == TimerStatus.idle || _status == TimerStatus.broken ? "START" : "RESUME",
+                      SizedBox(
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FocusSessionScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            backgroundColor: Colors.black.withValues(alpha: 0.5),
+                            shadowColor: Colors.cyan.withValues(alpha: 0.5),
+                            elevation: 1,
+                          ),
+                          child: Text(
+                            "NEW FOCUS SESSION"
+                          ),
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: _resetTimer,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black.withValues(alpha: 0.5),
-                          shadowColor: Colors.cyan.withValues(alpha: 0.5),
-                          elevation: 2,
-                        ),
-                        child: Text(
-                          "RESET"
-                        ),
-                      ),
+                  //     SizedBox(
+                  //       height: 40,
+                  //       child: ElevatedButton(
+                  //         onPressed: _status == TimerStatus.idle || _status == TimerStatus.broken ? _startTimer : _toggleTimer,
+                  //         style: ElevatedButton.styleFrom(
+                  //           shape: RoundedRectangleBorder(
+                  //             borderRadius: BorderRadius.circular(12.0)
+                  //           ),
+                  //           backgroundColor: Colors.black.withValues(alpha: 0.5),
+                  //           shadowColor: Colors.cyan.withValues(alpha: 0.5),
+                  //           elevation: 2,
+                  //         ),
+                  //         child: Text(
+                  //           _status == TimerStatus.running ? "PAUSE" : _status == TimerStatus.idle || _status == TimerStatus.broken ? "START" : "RESUME",
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     SizedBox(
+                  //       height: 40,
+                  //       child: ElevatedButton(
+                  //         onPressed: _resetTimer,
+                  //         style: ElevatedButton.styleFrom(
+                  //           shape: RoundedRectangleBorder(
+                  //             borderRadius: BorderRadius.circular(12.0),
+                  //           ),
+                  //           backgroundColor: Colors.black.withValues(alpha: 0.5),
+                  //           shadowColor: Colors.cyan.withValues(alpha: 0.5),
+                  //           elevation: 2,
+                  //         ),
+                  //         child: Text(
+                  //           "RESET"
+                  //         ),
+                  //       ),
+                  //     ),
                     ],
                   ),
                 ],

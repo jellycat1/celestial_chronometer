@@ -77,6 +77,7 @@ class CelestialPainter extends CustomPainter {
     }
     return path;
   }
+  
 
   @override
   void paint(Canvas canvas, Size size) {
