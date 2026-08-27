@@ -1,6 +1,7 @@
 import 'package:celestial_chronometer/models/planet_data.dart';
 import 'package:celestial_chronometer/focus_session_screen.dart';
 import 'package:celestial_chronometer/widgets/focus_time_input_field.dart';
+import 'package:celestial_chronometer/focus_session_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -38,30 +39,30 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
 
 
   final List<PlanetData> planets = const [
-    PlanetData(
-      orbitRadius: 50,
-      planetRadius: 4,
-      color: Color(0xFFFFAA50),
-      speedMultiplier: 1.7,
-    ),
-    PlanetData(
-      orbitRadius: 90,
-      planetRadius: 4,
-      color: Color(0xFF70FFE0),
-      speedMultiplier: 1.3,
-    ),
-    PlanetData(
-      orbitRadius: 130,
-      planetRadius: 4,
-      color: Color(0xFFFF6878),
-      speedMultiplier: 0.9,
-    ),
-    PlanetData(
-      orbitRadius: 170,
-      planetRadius: 4,
-      color: Color(0xFF9898FF),
-      speedMultiplier: 0.5,
-    ),
+    // PlanetData(
+    //   orbitRadius: 50,
+    //   planetRadius: 4,
+    //   color: Color(0xFFFFAA50),
+    //   speedMultiplier: 1.7,
+    // ),
+    // PlanetData(
+    //   orbitRadius: 90,
+    //   planetRadius: 4,
+    //   color: Color(0xFF70FFE0),
+    //   speedMultiplier: 1.3,
+    // ),
+    // PlanetData(
+    //   orbitRadius: 130,
+    //   planetRadius: 4,
+    //   color: Color(0xFFFF6878),
+    //   speedMultiplier: 0.9,
+    // ),
+    // PlanetData(
+    //   orbitRadius: 170,
+    //   planetRadius: 4,
+    //   color: Color(0xFF9898FF),
+    //   speedMultiplier: 0.5,
+    // ),
   ];
 
 
@@ -270,7 +271,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
                     children: [
                       SizedBox(
                         height: 45,
-                        child: ElevatedButton(
+                        child: StyledButton(
+                          content: "NEW FOCUS SESSION",
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -278,18 +280,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
                                 builder: (context) => FocusSessionScreen(sessionDuration: _selectedDuration,),
                               ),
                             );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            backgroundColor: Colors.black.withValues(alpha: 0.5),
-                            shadowColor: Colors.cyan.withValues(alpha: 0.5),
-                            elevation: 1,
-                          ),
-                          child: Text(
-                            "NEW FOCUS SESSION"
-                          ),
+                          }
                         ),
                       ),
                   //     SizedBox(
