@@ -10,8 +10,6 @@ import 'package:flutter/scheduler.dart';
 
 import 'celestial_painter.dart';
 
-enum TimerStatus { idle, running, paused, broken }
-
 class FocusTimerScreen extends StatefulWidget {
   const FocusTimerScreen({super.key});
 
@@ -20,16 +18,13 @@ class FocusTimerScreen extends StatefulWidget {
 }
 
 class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerProviderStateMixin {
-  late final AppLifecycleListener _lifecycleListener;
+  // late final AppLifecycleListener _lifecycleListener;
   late Ticker _ticker;
 
-  TimerStatus _status = TimerStatus.idle;
-  int _secondsElapsed = 0;
   double _pausedOffset = 0;
-  double _elapsedMilliseconds = 0;
-  Timer? _timer;
   double _rotationX = 0.5;
   double _rotationY = 0.5;
+  double _elapsedMilliseconds = 0.0;
 
   Duration _selectedDuration = Duration.zero;
 
@@ -39,12 +34,12 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
 
 
   final List<PlanetData> planets = const [
-    // PlanetData(
-    //   orbitRadius: 50,
-    //   planetRadius: 4,
-    //   color: Color(0xFFFFAA50),
-    //   speedMultiplier: 1.7,
-    // ),
+    PlanetData(
+      orbitRadius: 50,
+      planetRadius: 4,
+      color: Color(0xFFFFAA50),
+      speedMultiplier: 1.7,
+    ),
     // PlanetData(
     //   orbitRadius: 90,
     //   planetRadius: 4,
@@ -70,101 +65,94 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
   void initState() {
     super.initState();
 
+    // _lifecycleListener = AppLifecycleListener(
+    //   onPause: _onAppBackgrounded,
+    //   onInactive: _onAppBackgrounded,
+    //   onHide: _onAppBackgrounded,
+    // );
+
     _ticker = createTicker((elapsed) {
       setState(() {
-        _elapsedMilliseconds = _pausedOffset + elapsed.inMilliseconds.toDouble();
+        _elapsedMilliseconds = elapsed.inMilliseconds.toDouble();
       });
     });
 
-    _lifecycleListener = AppLifecycleListener(
-      onPause: _onAppBackgrounded,
-      onInactive: _onAppBackgrounded,
-      onHide: _onAppBackgrounded,
-    );
-
-    _startTimer();
-  }
-
-  void _onAppBackgrounded() {
-    if (_status == TimerStatus.running) {
-      _breakSystem();
-    }
-  }
-
-  void _startTimer() {
-    setState(() {
-      _status = TimerStatus.running;
-      _secondsElapsed = 0;
-      _pausedOffset = 0.0;
-      _elapsedMilliseconds = 0.0;
-    });
-
-    WakelockPlus.enable();
     _ticker.start();
 
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _secondsElapsed++;
-      });
-    });
   }
 
-  void _breakSystem() {
-    _timer?.cancel();
-    _ticker.stop();
-    WakelockPlus.disable();
+  // void _startTimer() {
+  //   setState(() {
+  //     _status = TimerStatus.running;
+  //     _elapsedMilliseconds = 0.0;
+  //   });
 
-    setState(() {
-      _status = TimerStatus.broken;
-    });
-  }
+  //   WakelockPlus.enable();
+  //   _ticker.start();
 
-  void _resetTimer() {
-    _timer?.cancel();
-    _ticker.stop();
-    WakelockPlus.disable();
+  //   _timer?.cancel();
+  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     setState(() {
+  //       _sessionSecondsLeft--;
+  //     });
+  //   });
+  // }
 
-    setState(() {
-      _status = TimerStatus.idle;
-      _secondsElapsed = 0;
-      _pausedOffset = 0.0;
-      _elapsedMilliseconds = 0.0;
-    });
-  }
+  // void _breakSystem() {
+  //   _timer?.cancel();
+  //   _ticker.stop();
+  //   WakelockPlus.disable();
 
-  void _toggleTimer() {
-    if (_status == TimerStatus.paused) {
-      // Resume
-      setState(() {
-        _status = TimerStatus.running;
-      });
-      _ticker.start();
-      WakelockPlus.enable();
+  //   setState(() {
+  //     _status = TimerStatus.broken;
+  //   });
+  // }
 
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-          _secondsElapsed++;
-        });
-      });
-    } else if (_status == TimerStatus.running) {
-      // Pause
-      _timer?.cancel();
-      _ticker.stop();
-      _pausedOffset = _elapsedMilliseconds; // Save exact position
-      WakelockPlus.disable();
+  // void _resetTimer() {
+  //   _timer?.cancel();
+  //   _ticker.stop();
+  //   WakelockPlus.disable();
 
-      setState(() {
-        _status = TimerStatus.paused;
-      });
-    }
-  }
+  //   setState(() {
+  //     _status = TimerStatus.idle;
+  //     _secondsElapsed = 0;
+  //     _pausedOffset = 0.0;
+  //     _elapsedMilliseconds = 0.0;
+  //   });
+  // }
+
+  // void _toggleTimer() {
+  //   if (_status == TimerStatus.paused) {
+  //     // Resume
+  //     setState(() {
+  //       _status = TimerStatus.running;
+  //     });
+  //     _ticker.start();
+  //     WakelockPlus.enable();
+
+  //     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //       setState(() {
+  //         _secondsElapsed++;
+  //       });
+  //     });
+  //   } else if (_status == TimerStatus.running) {
+  //     // Pause
+  //     _timer?.cancel();
+  //     _ticker.stop();
+  //     _pausedOffset = _elapsedMilliseconds; // Save exact position
+  //     WakelockPlus.disable();
+
+  //     setState(() {
+  //       _status = TimerStatus.paused;
+  //     });
+  //   }
+  // }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _lifecycleListener.dispose();
-    WakelockPlus.disable();
+    // _timer?.cancel();
+    // _lifecycleListener.dispose();
+    // WakelockPlus.disable();
     _ticker.dispose();
     super.dispose();
   }
