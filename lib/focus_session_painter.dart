@@ -16,14 +16,24 @@ class FocusSessionPainter extends CustomPainter {
     this.rotationY = 0.0,
   });
 
+  // ({Offset pos, double depth}) _project(
+  //     double planarX, double planarZ, Offset center) {
+  //   final double y = planarZ * math.sin(rotationX);
+  //   final double zTilt = planarZ * math.cos(rotationX);
+  //   final double x = planarX * math.cos(rotationY) + zTilt * math.sin(rotationY);
+  //   final double depth = -planarX * math.sin(rotationY) + zTilt * math.cos(rotationY);
+  //   return (pos: Offset(center.dx + x, center.dy + y), depth: depth);
+  // }
   ({Offset pos, double depth}) _project(
-      double planarX, double planarZ, Offset center) {
-    final double y = planarZ * math.sin(rotationX);
-    final double zTilt = planarZ * math.cos(rotationX);
-    final double x = planarX * math.cos(rotationY) + zTilt * math.sin(rotationY);
-    final double depth = -planarX * math.sin(rotationY) + zTilt * math.cos(rotationY);
-    return (pos: Offset(center.dx + x, center.dy + y), depth: depth);
-  }
+    double planarX, double planarY, double planarZ, Offset center) {
+      final double rotY = planarY * math.cos(rotationX) - planarZ * math.sin(rotationX);
+      final double rotZ = planarY * math.sin(rotationX) + planarZ * math.cos(rotationX);
+
+      final double x = planarX * math.cos(rotationY) + rotZ * math.sin(rotationY);
+      final double depth = -planarX * math.sin(rotationY) + rotZ * math.cos(rotationY);
+
+      return (pos: Offset(center.dx + x, center.dy + rotY), depth: depth);
+    }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -47,44 +57,38 @@ class FocusSessionPainter extends CustomPainter {
   }
 
   void _drawDustCloud(Canvas canvas, Offset center, double seconds) {
-    const int particleCount = 80;
+    const int particleCount = 100;
     final List<_DustParticle> particles = [];
+    final math.Random rng = math.Random(1337);
 
     for (int i = 0; i < particleCount; i++) {
-      final double seedRadius = (math.sin(i * 99.0) * 0.5 + 0.5);
-      final double seedSpread = (math.cos(i * 57.0) * 0.5 + 0.5);
-      final double seedSpeed = (math.cos(i * 33.0) * 0.5 + 0.5);
-      final double seedAlpha = (math.sin(i * 77.0) * 0.5 + 0.5);
+      final double seedRadius = rng.nextDouble();
+      final double seedSpread = rng.nextDouble();
+      final double seedSpeed = rng.nextDouble();
+      final double seedAlpha = rng.nextDouble();
 
-      // final double radius = session.orbitRadius + (seedRadius - 0.5) * 30.0;
-      // final double initialAngle = (i / particleCount) * 2 * math.pi;
+      final double heightSeed = rng.nextDouble();
+      final double r = session.orbitRadius * math.pow(seedSpread, 1/3);
+      final double costheta = 2 * heightSeed - 1;
+      final double sintheta = math.sqrt(1 - costheta * costheta);
 
-      final double distance = session.orbitRadius * math.sqrt(seedSpread);
-      final double heightSeed = math.sin(i * 41.0) * 0.5 + 0.5;
-      final double height = (heightSeed - 0.5) * session.orbitRadius * 0.6;
+      final double height = r * costheta;
+      final double distance = r * sintheta;
 
-      // final double speed = 0.8 + seedSpeed * 0.4;
-      final double initialAngle = (i / particleCount) * 2 * math.pi;
+      final double angleSeed = rng.nextDouble();
+      final double initialAngle = angleSeed * 2 * math.pi;
       final double speed = 0.15 + seedSpeed * 0.15;
       final double angle = initialAngle + (seconds * speed);
 
-      // final projected = _project(
-      //   radius * math.cos(-angle),
-      //   radius * math.sin(-angle),
-      //   center,
-      // );
 
       final double planarX = distance * math.cos(-angle);
       final double planarZ = distance * math.sin(-angle);
+      final double planarY = height;
 
-      final projected = _project(planarX, planarZ, center);
-      final Offset pos = Offset(
-        projected.pos.dx,
-        projected.pos.dy + height,
-      );
+      final projected = _project(planarX, planarY, planarZ, center);
 
       particles.add(_DustParticle(
-        pos: pos,
+        pos: projected.pos,
         depth: projected.depth,
         radius: 0.6 + seedRadius * 1.0,
         alpha: 0.2 + seedAlpha * 0.5,
@@ -93,9 +97,9 @@ class FocusSessionPainter extends CustomPainter {
 
     particles.sort((a, b) => a.depth.compareTo(b.depth));
 
-    final projectedCore = _project(0, 0, center);
+    final projectedCore = _project(0, 0, 0, center);
     final Paint coreGlow = Paint()
-      ..color = session.baseColor.withValues(alpha: 0.25)
+      ..color = session.baseColor.withValues(alpha: 0.55)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     canvas.drawCircle(projectedCore.pos, 12, coreGlow);
 
