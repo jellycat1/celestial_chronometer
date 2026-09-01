@@ -66,8 +66,23 @@ class FocusSessionPainter extends CustomPainter {
 
     final Paint paint = Paint()..style = PaintingStyle.fill;
 
+    // if (moonProjected.depth <= planetProjected.depth) {
+    //   _drawMoon(canvas, moonProjected.pos, moonRadius, planetProjected.pos, planetRadius);
+    // }
+
     if (moonProjected.depth <= planetProjected.depth) {
-      _drawMoon(canvas, moonProjected.pos, moonRadius, planetProjected.pos, planetRadius);
+      canvas.save();
+
+      final Path occludedPath = Path()
+        ..addRect(Rect.fromLTWH(0, 0, canvas.getLocalClipBounds().width, canvas.getLocalClipBounds().height))
+        ..addOval(Rect.fromCircle(center: planetProjected.pos, radius: planetRadius));
+
+      occludedPath.fillType = PathFillType.evenOdd;
+      canvas.clipPath(occludedPath);
+
+      _drawMoonBody(canvas, moonProjected.pos, moonRadius);
+
+      canvas.restore();
     }
 
     final Paint atmosphereGlow = Paint()
@@ -93,20 +108,11 @@ class FocusSessionPainter extends CustomPainter {
     );
 
     if (moonProjected.depth > planetProjected.depth) {
-      _drawMoon(canvas, moonProjected.pos, moonRadius, planetProjected.pos, planetRadius);
+      _drawMoonBody(canvas, moonProjected.pos, moonRadius);
     }
   }
 
-  void _drawMoon(
-    Canvas canvas,
-    Offset moonPos,
-    double moonRadius,
-    Offset planetPos,
-    double planetRadius,
-  ) {
-    final double distToPlanet = (moonPos - planetPos).distance;
-    if (distToPlanet < planetRadius) return;
-    
+  void _drawMoonBody(Canvas canvas, Offset moonPos, double moonRadius) {
     final Paint moonPaint = Paint()
       ..color = Colors.grey[300]!
       ..style = PaintingStyle.fill;
