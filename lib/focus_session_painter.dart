@@ -41,12 +41,82 @@ class FocusSessionPainter extends CustomPainter {
         _drawProtoPlanet(canvas, center, seconds);
         break;
       case PlanetStage.planet:
+        _drawPlanet(canvas, center, seconds);
         break;
       case PlanetStage.ringedPlanet:
         break;
       case PlanetStage.fullyEvolved:
         break;
     }
+  }
+
+  void _drawPlanet(Canvas canvas, Offset center, double seconds) {
+    final planetProjected = _project(0, 0, 0, center);
+    const double planetRadius = 14.0;
+
+    const double moonOrbitRadius = 32.0;
+    final double moonAngle = seconds * 1.2;
+
+    final double moonX = moonOrbitRadius * math.cos(moonAngle);
+    final double moonZ = moonOrbitRadius * math.sin(moonAngle);
+    final double moonY = (math.sin(moonAngle * 2) * 4.0);
+
+    final moonProjected = _project(moonX, moonY, moonZ, center);
+    const double moonRadius = 3.5;
+
+    final Paint paint = Paint()..style = PaintingStyle.fill;
+
+    if (moonProjected.depth <= planetProjected.depth) {
+      _drawMoon(canvas, moonProjected.pos, moonRadius, planetProjected.pos, planetRadius);
+    }
+
+    final Paint atmosphereGlow = Paint()
+      ..color = session.baseColor.withValues(alpha: 0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+    canvas.drawCircle(planetProjected.pos, planetRadius * 1.8, atmosphereGlow);
+
+    final Paint atmosphereRim = Paint()
+      ..color = session.baseColor.withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(planetProjected.pos, planetRadius * 1.1, atmosphereRim);
+
+    paint.color = session.baseColor;
+    canvas.drawCircle(planetProjected.pos, planetRadius, paint);
+
+    final Paint surfaceDetail = Paint()
+      ..color = Colors.white.withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    canvas.drawCircle(
+      Offset(planetProjected.pos.dx - 3, planetProjected.pos.dy - 3),
+      planetRadius * 0.6,
+      surfaceDetail
+    );
+
+    if (moonProjected.depth > planetProjected.depth) {
+      _drawMoon(canvas, moonProjected.pos, moonRadius, planetProjected.pos, planetRadius);
+    }
+  }
+
+  void _drawMoon(
+    Canvas canvas,
+    Offset moonPos,
+    double moonRadius,
+    Offset planetPos,
+    double planetRadius,
+  ) {
+    final double distToPlanet = (moonPos - planetPos).distance;
+    if (distToPlanet < planetRadius) return;
+    
+    final Paint moonPaint = Paint()
+      ..color = Colors.grey[300]!
+      ..style = PaintingStyle.fill;
+
+    final Paint moonGlow = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+
+    canvas.drawCircle(moonPos, moonRadius * 1.4, moonGlow);
+    canvas.drawCircle(moonPos, moonRadius, moonPaint);
   }
 
   void _drawDustCloud(Canvas canvas, Offset center, double seconds) {
