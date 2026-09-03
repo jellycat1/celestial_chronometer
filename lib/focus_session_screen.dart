@@ -30,8 +30,8 @@ class _FocusSessionScreenState extends State<FocusSessionScreen> with SingleTick
   double _rotationX = 0.5;
   double _rotationY = 0.5;
 
-  double _scale = 1.0;
-  double _baseScale = 1.0;
+  double _scale = 2;
+  double _baseScale = 2;
   Offset _offset = Offset.zero;
 
   @override
@@ -43,7 +43,7 @@ class _FocusSessionScreenState extends State<FocusSessionScreen> with SingleTick
     _session = FocusSession(
       id: DateTime.now().toIso8601String(),
       targetDuration: sessionDuration,
-      baseColor: const Color(0xFFFFAA50),
+      baseColor: const Color.fromARGB(255, 80, 162, 255),
       ringColor: const Color(0xFF70FFE0),
       orbitRadius: 90,
     );
@@ -126,7 +126,7 @@ class _FocusSessionScreenState extends State<FocusSessionScreen> with SingleTick
               onScaleUpdate: _onScaleUpdate,
               child: Center(
                 child: Transform(
-                  alignment: Alignment.center,
+                  alignment: Alignment.bottomCenter,
                   transform: Matrix4.identity()
                     ..translate(_offset.dx, _offset.dy)
                     ..scale(_scale),
