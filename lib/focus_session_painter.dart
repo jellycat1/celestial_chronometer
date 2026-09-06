@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import 'package:celestial_chronometer/celestial_painter.dart';
 import 'package:flutter/material.dart';
@@ -86,111 +87,93 @@ class FocusSessionPainter extends CustomPainter {
   }
 
   void _drawLivingPlanet(Canvas canvas, Offset center, double seconds) {
-    final planetProjected = _project(0, 0, 0, center);
     const double planetRadius = 14.0;
+    final surface = _LivingSurface.instance(5500);
 
-    final Paint atmosphereGlow = Paint()
-      ..color = const Color(0xFF4FC3F7).withValues(alpha: 0.4)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
-    canvas.drawCircle(planetProjected.pos, planetRadius * 1.8, atmosphereGlow);
+    final cosX = math.cos(rotationX), sinX = math.sin(rotationX);
+    final cosY = math.cos(rotationY), sinY = math.sin(rotationY);
+    final spin = seconds * 0.35;
+    final cosS = math.cos(spin), sinS = math.sin(spin);
 
-    canvas.save();
+    const lx = -0.42, ly = -0.55, lz = 0.72;
+    const lwx = 0.25, lwy = -0.30, lwz = 0.92;
 
-    final Path planetPath = Path()
-      ..addOval(Rect.fromCircle(center: planetProjected.pos, radius: planetRadius));
-    canvas.clipPath(planetPath);
+    final oceanR = (session.baseColor.r * 255).round();
+    final oceanG = (session.baseColor.g * 255).round();
+    final oceanB = (session.baseColor.b * 255).round();
 
-    final Paint oceanPaint = Paint()..color = const Color(0xFF1E88E5);
-    canvas.drawRect(
-      Rect.fromCircle(center: planetProjected.pos, radius: planetRadius),
-      oceanPaint,
+    canvas.drawCircle(
+      center,
+      planetRadius * 1.7,
+      Paint()
+        ..color = session.baseColor.withValues(alpha: 0.20)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
 
-    final Paint landPaint = Paint()
-      ..color = const Color(0xFF43A047)
-      ..style = PaintingStyle.fill;
+    final dot = Paint()
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    final dotR = planetRadius * 2.2 / math.sqrt(surface.count);
 
-    const double rotationSpeed = 0.4;
-    final double currentRotation = seconds * rotationSpeed;
+    for (var i = 0; i < surface.count; i++) {
+      final ux = surface.xs[i], uy = surface.ys[i], uz = surface.zs[i];
+      final sx = ux * cosS + uz * sinS;
+      final sz = -ux * sinS + uz * cosS;
 
-    const continents = [
-      (0.3, 0.0, 6.0),
-      (-0.4, 2.1, 4.5),
-      (0.1, 4.2, 5.0),
-      (-0.2, -1.8, 3.5),
-      (0.6, 3.1, 3.0),
-    ];
+      final rotZ = uy * sinX + sz * cosX;
+      final nx = sx * cosY + rotZ * sinY;
+      final nz = -sx * sinY + rotZ * cosY;
+      final ny = uy * cosX - sz * sinX;
 
-    // Only the hemisphere facing the camera should render land, and it
-    // should fade out smoothly as it nears the limb of the sphere rather
-    // than popping in/out.
-    for (final land in continents) {
-      final double lat = land.$1;
-      final double baseLong = land.$2;
-      final double landRadius = land.$3;
+      if (nz <= 0.02) continue;
 
-      final double longAngle = baseLong + currentRotation;
+      final b = sx * lwx + uy * lwy + sz * lwz;
+      final day = _smooth01(-0.30, 0.35, b);
 
-      final double x = planetRadius * math.cos(lat) * math.sin(longAngle);
-      final double y = planetRadius * math.sin(lat);
-      final double z = planetRadius * math.cos(lat) * math.cos(longAngle);
-
-      final projectedLand = _project(x, y, z, center);
-      final double facing = (projectedLand.depth - planetProjected.depth) / planetRadius;
-
-      if (facing > 0) {
-        final double horizonScale = (facing * 1.2).clamp(0.15, 1.0);
-
-        canvas.drawCircle(
-          projectedLand.pos,
-          landRadius * horizonScale,
-          landPaint,
-        );
+      int ar, ag, ab;
+      final ice = surface.absY[i] > 0.86;
+      final ocean = !ice && surface.elev[i] < 0.5;
+      if (ice) {
+        ar = 228; ag = 244; ab = 255;
+      } else if (ocean) {
+        ar = oceanR; ag = oceanG; ab = oceanB;
+      } else {
+        ar = 64; ag = 150; ab = 84;
       }
+
+      final wrap = ((b + 0.35) / 1.35).clamp(0.0, 1.0);
+      final shade = 0.30 + 0.70 * wrap;
+      var dr = ar * shade, dg = ag * shade, db = ab * shade;
+      if (ocean && b > 0) {
+        final s = b * b * b * b;
+        dr += 70 * s; dg += 80 * s; db += 90 * s;
+      }
+
+      var nr = ar * 0.05, ng = ag * 0.06, nb = ab * 0.09;
+      if (!ocean && !ice && surface.city[i] < 0.16) {
+        final glow = 1.0 - surface.city[i] / 0.16 * 0.45;
+        nr = 255 * glow; ng = 208 * glow; nb = 130 * glow;
+      }
+
+      final cr = (nr + (dr - nr) * day).clamp(0.0, 255.0);
+      final cg = (ng + (dg - ng) * day).clamp(0.0, 255.0);
+      final cb = (nb + (db - nb) * day).clamp(0.0, 255.0);
+      dot.color = Color.fromARGB(255, cr.round(), cg.round(), cb.round());
+
+      final px = center.dx + nx * planetRadius;
+      final py = center.dy + ny * planetRadius;
+      canvas.drawCircle(Offset(px, py), dotR * (0.85 + 0.30 * nz), dot);
     }
 
-    // A thin, slowly drifting cloud layer to make the planet feel alive.
-    final math.Random cloudRng = math.Random(2024);
-    final Paint cloudPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.35)
-      ..style = PaintingStyle.fill;
-
-    const int cloudCount = 10;
-    for (int i = 0; i < cloudCount; i++) {
-      final double lat = (cloudRng.nextDouble() - 0.5) * math.pi * 0.8;
-      final double baseLong = cloudRng.nextDouble() * 2 * math.pi;
-      final double cloudRadius = 2.0 + cloudRng.nextDouble() * 2.5;
-      final double speed = 0.7 + cloudRng.nextDouble() * 0.4;
-
-      final double longAngle = baseLong + currentRotation * speed;
-
-      final double x = (planetRadius + 0.6) * math.cos(lat) * math.sin(longAngle);
-      final double y = (planetRadius + 0.6) * math.sin(lat);
-      final double z = (planetRadius + 0.6) * math.cos(lat) * math.cos(longAngle);
-
-      final projectedCloud = _project(x, y, z, center);
-      final double facing = (projectedCloud.depth - planetProjected.depth) / planetRadius;
-
-      if (facing > 0) {
-        final double horizonScale = (facing * 1.2).clamp(0.15, 1.0);
-        canvas.drawCircle(projectedCloud.pos, cloudRadius * horizonScale, cloudPaint);
-      }
-    }
-
-    final Paint shadowPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(planetProjected.pos.dx - planetRadius, planetProjected.pos.dy - planetRadius),
-        Offset(planetProjected.pos.dx + planetRadius, planetProjected.pos.dy + planetRadius),
-        [
-          Colors.white.withValues(alpha: 0.2),
-          Colors.transparent,
-          Colors.black.withValues(alpha: 0.6),
-        ],
-        [0.0, 0.45, 1.0],
-      );
-    canvas.drawCircle(planetProjected.pos, planetRadius, shadowPaint);
-
-    canvas.restore();
+    canvas.drawCircle(
+      center,
+      planetRadius * 0.99,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = planetRadius * 0.05
+        ..color = session.ringColor.withValues(alpha: 0.30)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, planetRadius * 0.04),
+    );
   }
 
   void _drawMoonTrack(Canvas canvas, Offset center, double radius) {
@@ -463,4 +446,68 @@ class _DustParticle {
     required this.radius,
     required this.alpha
   });
+}
+
+double _smooth01(double a, double b, double x) {
+  final t = ((x - a) / (b - a)).clamp(0.0, 1.0);
+  return t * t * (3 - 2 * t);
+}
+
+class _LivingSurface {
+  _LivingSurface(this.count) {
+    xs = Float32List(count);
+    ys = Float32List(count);
+    zs = Float32List(count);
+    elev = Float32List(count);
+    city = Float32List(count);
+    absY = Float32List(count);
+
+    final golden = math.pi * (3 -  math.sqrt(5));
+    final raw = List<double>.filled(count, 0);
+    var lo = double.infinity, hi = -double.infinity;
+
+    for (var i = 0; i < count; i++) {
+      final y = 1 - (i / (count - 1)) * 2;
+      final r = math.sqrt(math.max(0.0, 1 - y * y));
+      final theta = golden * i;
+      final x = math.cos(theta) * r;
+      final z = math.sin(theta) * r;
+
+      xs[i] = x; ys[i] = y; zs[i] = z;
+      absY[i] = y.abs();
+      city[i] = _hash01(i * 12.9898 + 7.13);
+
+      final f = _continent(x, y, z);
+      raw[i] = f;
+      if (f < lo) lo = f;
+      if (f > hi) hi = f;
+    }
+
+    final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
+    for (var i = 0; i < count; i++) {
+      elev[i] = (raw[i] - lo) / span;
+    }
+
+  }
+
+  final int count;
+  late final Float32List xs, ys, zs, elev, city, absY;
+
+  static _LivingSurface? _cached;
+  static _LivingSurface instance(int count) =>
+    (_cached != null && _cached!.count == count)
+      ? _cached!
+      : (_cached = _LivingSurface(count));
+
+  static double _continent(double x, double y, double z) {
+    var v = math.sin(1.7 * x + 0.3) * math.sin(1.9 * y - 1.1) * math.sin(2.1 * z + 0.7);
+    v += 0.50 * math.sin(3.3 * x - 2.0) * math.sin(3.7 * y + 0.5) * math.sin(3.1 * z - 1.4);
+    v += 0.25 * math.sin(6.1 * x + 1.2) * math.sin(5.7 * y + 2.3) * math.sin(6.9 * z + 0.2);
+    return v;
+  }
+
+  static double _hash01(double n) {
+    final s = math.sin(n) * 43758.5453;
+    return s - s.floorToDouble();
+  }
 }

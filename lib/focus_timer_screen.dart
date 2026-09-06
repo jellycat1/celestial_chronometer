@@ -271,40 +271,6 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with SingleTickerPr
                           }
                         ),
                       ),
-                  //     SizedBox(
-                  //       height: 40,
-                  //       child: ElevatedButton(
-                  //         onPressed: _status == TimerStatus.idle || _status == TimerStatus.broken ? _startTimer : _toggleTimer,
-                  //         style: ElevatedButton.styleFrom(
-                  //           shape: RoundedRectangleBorder(
-                  //             borderRadius: BorderRadius.circular(12.0)
-                  //           ),
-                  //           backgroundColor: Colors.black.withValues(alpha: 0.5),
-                  //           shadowColor: Colors.cyan.withValues(alpha: 0.5),
-                  //           elevation: 2,
-                  //         ),
-                  //         child: Text(
-                  //           _status == TimerStatus.running ? "PAUSE" : _status == TimerStatus.idle || _status == TimerStatus.broken ? "START" : "RESUME",
-                  //         ),
-                  //       ),
-                  //     ),
-                  //     SizedBox(
-                  //       height: 40,
-                  //       child: ElevatedButton(
-                  //         onPressed: _resetTimer,
-                  //         style: ElevatedButton.styleFrom(
-                  //           shape: RoundedRectangleBorder(
-                  //             borderRadius: BorderRadius.circular(12.0),
-                  //           ),
-                  //           backgroundColor: Colors.black.withValues(alpha: 0.5),
-                  //           shadowColor: Colors.cyan.withValues(alpha: 0.5),
-                  //           elevation: 2,
-                  //         ),
-                  //         child: Text(
-                  //           "RESET"
-                  //         ),
-                  //       ),
-                  //     ),
                     ],
                   ),
                 ],
