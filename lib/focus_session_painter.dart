@@ -206,6 +206,34 @@ class FocusSessionPainter extends CustomPainter {
     canvas.drawPath(orbitPath, trackPaint);
   }
 
+  void _drawDeadPlanet(Canvas canvas, Offset center, double seconds) {
+    final double planetRadius = math.min(center.dx, center.dy) * 0.68;
+    final surface = _LivingSurface.instance(2200);
+    final relief = _Craters.instance(2200);
+
+    final coxX = math.cos(rotationX), sinX = math.sin(rotationX);
+    final cosY = math.cos(rotationY), sinY = math.sin(rotationY);
+    final spin = seconds * 0.20;
+    final cosS = math.cos(spin), sinS = math.sin(spin);
+
+    const lwx = 0.25, lwy = -0.30, lwz = 0.92;
+
+    final dot = Paint()
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    final dotR = planetRadius * 2.2 / math.sqrt(surface.count);
+
+    for (var i = 0; i < surface.count; i++) {
+      final ux = surface.xs[i], uy = surface.ys[i], uz = surface.zs[i];
+      final sx = ux * cosS + uz * sinS;
+      final sz = -uz * sinS + uz * cosS;
+      
+      final rotZ = uy * sinX + sz * cosX;
+      final nx = sx * cosY + rotZ * sinY;
+    }
+
+  }
+
   void _drawPlanetWithMoon(Canvas canvas, Offset center, double seconds) {
     final planetProjected = _project(0, 0, 0, center);
     const double planetRadius = 14.0;
