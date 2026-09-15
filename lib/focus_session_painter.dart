@@ -44,7 +44,7 @@ class FocusSessionPainter extends CustomPainter {
         _drawProtoPlanet(canvas, center, seconds);
         break;
       case PlanetStage.planet:
-      _drawLivingPlanet(canvas, center, seconds);
+      _drawDeadPlanet(canvas, center, seconds);
         break;
       case PlanetStage.planetWithMoon:
         _drawPlanetWithMoon(canvas, center, seconds);
@@ -87,7 +87,7 @@ class FocusSessionPainter extends CustomPainter {
   }
 
   void _drawLivingPlanet(Canvas canvas, Offset center, double seconds) {
-    const double planetRadius = 14.0;
+    const double planetRadius = 18.0;
     final surface = _LivingSurface.instance(5500);
 
     final cosX = math.cos(rotationX), sinX = math.sin(rotationX);
@@ -113,7 +113,7 @@ class FocusSessionPainter extends CustomPainter {
     final dot = Paint()
       ..style = PaintingStyle.fill
       ..isAntiAlias = true;
-    final dotR = planetRadius * 2.2 / math.sqrt(surface.count);
+    final dotR = planetRadius * 3.0 / math.sqrt(surface.count);
 
     for (var i = 0; i < surface.count; i++) {
       final ux = surface.xs[i], uy = surface.ys[i], uz = surface.zs[i];
@@ -207,11 +207,12 @@ class FocusSessionPainter extends CustomPainter {
   }
 
   void _drawDeadPlanet(Canvas canvas, Offset center, double seconds) {
-    final double planetRadius = math.min(center.dx, center.dy) * 0.68;
-    final surface = _LivingSurface.instance(2200);
-    final relief = _Craters.instance(2200);
+    // final double planetRadius = math.min(center.dx, center.dy) * 0.5;
+    final double planetRadius = 14;
+    final surface = _LivingSurface.instance(4500);
+    final relief = _Craters.instance(4500);
 
-    final coxX = math.cos(rotationX), sinX = math.sin(rotationX);
+    final cosX = math.cos(rotationX), sinX = math.sin(rotationX);
     final cosY = math.cos(rotationY), sinY = math.sin(rotationY);
     final spin = seconds * 0.20;
     final cosS = math.cos(spin), sinS = math.sin(spin);
@@ -226,11 +227,56 @@ class FocusSessionPainter extends CustomPainter {
     for (var i = 0; i < surface.count; i++) {
       final ux = surface.xs[i], uy = surface.ys[i], uz = surface.zs[i];
       final sx = ux * cosS + uz * sinS;
-      final sz = -uz * sinS + uz * cosS;
+      final sz = -ux * sinS + uz * cosS;
       
       final rotZ = uy * sinX + sz * cosX;
       final nx = sx * cosY + rotZ * sinY;
+      final nz = -sx * sinY + rotZ * cosY;
+      final ny = uy * cosX - sz * sinX;
+      if (nz <= 0.02) continue;
+
+      final b = sx * lwx + uy * lwy + sz * lwz;
+      final lit = 0.10 + 0.90 * math.max(0.0, b);
+
+      final e = surface.elev[i];
+      int ar, ag, ab;
+      if (e < 0.42) {
+        final t = _smooth01(0.0, 0.42, e);
+        ar = (70 + 60 * t).round();
+        ag = (52 + 34 * t).round();
+        ab = (46 + 22 * t).round();
+      } else {
+        final t = _smooth01(0.42, 1.0, e);
+        ar = (130 + 78 * t).round();
+        ag = (86 + 78 * t).round();
+        ab = (68 + 66 * t).round();
+      }
+
+      if (surface.absY[i] > 0.90) {
+        ar = (ar + 210) ~/ 2; ag = (ag + 215) ~/ 2; ab = (ab + 205) ~/ 2;
+      }
+
+      final grain = 0.90 + 0.20 * surface.city[i];
+      final shade = lit * relief.shade[i] * grain;
+
+      final cr = (ar * shade).clamp(0.0, 255.0);
+      final cg = (ag * shade).clamp(0.0, 255.0);
+      final cb = (ab * shade).clamp(0.0, 255.0);
+      dot.color = Color.fromARGB(255, cr.round(), cg.round(), cb.round());
+
+      final px = center.dx + nx * planetRadius;
+      final py = center.dy + ny * planetRadius;
+      canvas.drawCircle(Offset(px, py), dotR * (0.85 + 0.30 * nz), dot);
     }
+
+    canvas.drawCircle(
+      center,
+      planetRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = planetRadius * 0.02
+        ..color = Colors.black.withValues(alpha: 0.35),
+    );
 
   }
 
@@ -536,6 +582,52 @@ class _LivingSurface {
 
   static double _hash01(double n) {
     final s = math.sin(n) * 43758.5453;
+    return s - s.floorToDouble();
+  }
+}
+
+class _Craters {
+  _Craters(this.count) {
+    shade = Float32List(count);
+    final s = _LivingSurface.instance(count);
+
+    const int n = 42; // Number of craters
+    final cx = Float32List(n), cy = Float32List(n), cz = Float32List(n);
+    final cr = Float32List(n);
+    final golden = math.pi * (3 - math.sqrt(5));
+    for (var k = 0; k < n; k++) {
+      final y = 1 - 2 * _h(k * 3.1 + 0.5);
+      final r = math.sqrt(math.max(0.0, 1 - y * y));
+      final th = golden * k + _h(k * 7.7 + 1.3) * 6.283;
+      cx[k] = math.cos(th) * r; cy[k] = y; cz[k] = math.sin(th) * r;
+      cr[k] = 0.05 + 0.12 * _h(k * 2.3 + 4.1);
+    }
+
+    for (var i =0; i < count; i++) {
+      final px = s.xs[i], py = s.ys[i], pz = s.zs[i];
+      var f = 1.0;
+      for (var k = 0; k < n; k++) {
+        final d = (px * cx[k] + py * cy[k] + pz * cz[k]).clamp(-1.0, 1.0);
+        final ang = math.acos(d);
+        if (ang < cr[k] * 1.15) {
+          final t = ang / cr[k];
+          f *= t < 0.82 ? (0.5 + 0.22 * t)
+            : 1.28;
+        }
+      }
+      shade[i] = f.clamp(0.35, 1.4);
+    }
+  }
+
+  final int count;
+  late final Float32List shade;
+
+  static _Craters? _c;
+  static _Craters instance(int count) =>
+    (_c != null && _c!.count == count) ? _c! : (_c = _Craters(count));
+
+  static double _h(double n) {
+    final s = math.sin(n * 91.17) * 43758.5453;
     return s - s.floorToDouble();
   }
 }
